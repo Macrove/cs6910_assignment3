@@ -8,4 +8,4 @@ VALID_FILENAME = "hin_valid.csv"
 LANG1NAME = "English"
 LANG2NAME = "Hindi"
 
-DEVICE = 'cuda' if cuda.is_available() else 'gpu'
+DEVICE = 'cuda' if cuda.is_available() else 'cpu'

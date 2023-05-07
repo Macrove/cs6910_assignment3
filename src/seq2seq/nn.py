@@ -55,7 +55,7 @@ class Transliterator():
         return loss.item() / target_length
 
 
-    def trainIters(self, n_iters, print_every=100):
+    def fit(self, n_iters, print_every=100):
         start = time.time()
         print_loss_total = 0  # Reset every print_every
 
