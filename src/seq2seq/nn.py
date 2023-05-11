@@ -1,23 +1,26 @@
-from tqdm import trange
+from tqdm import trange, tqdm
 from torch import nn
 import time
 import random
 import torch
 from utils.prepare_tensors import tensors_from_pair
 from seq2seq.encoder import EncoderRNN
-from seq2seq.decoder import DecoderRNN
+from seq2seq.decoder import DecoderRNN, AttnDecoderRNN
 
 class Transliterator():
-    def __init__(self, input_lang, output_lang, pairs, hidden_size, lr, optimizer, criterion, device, max_length = 30):
+    def __init__(self, input_lang, output_lang, pairs, hidden_size, lr, optimizer, criterion, device, teacher_forcing_ratio, max_length = 30):
         self.device = device
         self.encoder = EncoderRNN(input_lang.n_chars, hidden_size, optimizer, self.device, lr)
         self.decoder = DecoderRNN(hidden_size, output_lang.n_chars, optimizer, self.device, lr)
+        # self.decoder = AttnDecoderRNN(hidden_size, output_lang.n_chars, device, optimizer, lr)
+
         self.input_lang = input_lang
         self.output_lang = output_lang
         self.max_length = max_length
         if criterion == 'nlll':
             self.criterion = nn.NLLLoss()
         self.pairs = pairs
+        self.teacher_forcing_ratio = teacher_forcing_ratio
 
     def train(self, input_tensor, target_tensor):
         encoder_hidden = self.encoder.initHidden()
@@ -37,17 +40,32 @@ class Transliterator():
                 input_tensor[ei], encoder_hidden)
             encoder_outputs[ei] = encoder_output[0, 0]
 
-        # decoder_input = torch.tensor([1], dtype=torch.long, device=self.device)
+        decoder_input = torch.tensor([0], dtype=torch.long, device=self.device)
 
         decoder_hidden = encoder_hidden
 
-        for di in range(target_length):
-            decoder_input = target_tensor[di]  # Teacher forcing
-            decoder_output, decoder_hidden = self.decoder(
-                decoder_input, decoder_hidden)
-            loss += self.criterion(decoder_output, target_tensor[di])
+        use_teacher_forcing = True if random.random() < self.teacher_forcing_ratio else False
 
-        loss.backward()
+        if use_teacher_forcing:
+            # Teacher forcing: Feed the target as the next input
+            for di in range(target_length):
+                decoder_output, decoder_hidden = self.decoder(
+                decoder_input, decoder_hidden)
+                loss += self.criterion(decoder_output, target_tensor[di])
+                decoder_input = target_tensor[di]  # Teacher forcing
+
+        else:
+            # Without teacher forcing: use its own predictions as the next input
+            for di in range(target_length):
+                decoder_output, decoder_hidden = self.decoder(
+                    decoder_input, decoder_hidden)
+                topv, topi = decoder_output.topk(1)
+                decoder_input = topi.squeeze().detach()  # detach from history as input
+
+                loss += self.criterion(decoder_output, target_tensor[di])
+                if decoder_input.item() == 1:
+                    break
+            loss.backward()
 
         self.encoder.optimizer.step()
         self.decoder.optimizer.step()
@@ -78,6 +96,43 @@ class Transliterator():
                 t.set_description(f"Avg loss = {print_loss_avg:.5f}")
                 print_loss_total = 0
         end = time.time()
-        print(f"Training Time: {(end - start)} s")
-        print(f"Final average loss = {print_loss_avg}")
+        print(f"Training Time: {(end - start):.3f} seconds")
+        print(f"Final average loss = {print_loss_avg:.4f}")
+    
+    def evaluate(self, pairs):
+        with torch.no_grad():
+            eval_pairs = [tensors_from_pair(self.input_lang, self.output_lang, pair)
+                        for pair in pairs]
+            tot_correct = 0
+            for i, pair in tqdm(enumerate(eval_pairs)):
+                input_tensor = pair[0]
+                input_length = input_tensor.size()[0]
+
+                encoder_hidden = self.encoder.initHidden()
+                encoder_outputs = torch.zeros(self.max_length, self.encoder.hidden_size, device=self.device)
+
+                for ei in range(input_length):
+                    encoder_output, encoder_hidden = self.encoder(input_tensor[ei], encoder_hidden)
+                    encoder_outputs[ei] += encoder_output[0, 0]
+
+                decoder_input = torch.tensor([0], dtype=torch.long, device=self.device)  # SOS
+
+                decoder_hidden = encoder_hidden
+
+                decoded_chars = []
+
+                for di in range(self.max_length):
+                    decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+                    topv, topi = decoder_output.data.topk(1)
+                    if topi.item() == '<':
+                        decoded_chars.append('<')
+                        break
+                    else:
+                        decoded_chars.append(self.output_lang.index_2_char[topi.item()])
+
+                    decoder_input = topi.squeeze().detach()
+                pred_word = "".join([c for c in decoded_chars])
+                tot_correct += pairs[i][1] == pred_word
+            val_acc = tot_correct/len(eval_pairs) * 100
+            print(val_acc)
 
