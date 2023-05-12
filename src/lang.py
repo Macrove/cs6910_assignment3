@@ -1,7 +1,7 @@
 class Lang:
     def __init__(self, name):
         self.name = name
-        self.char_2_index = {'>': 0, '<': 1, '~': 2}
+        self.char_2_index = {}
         self.index_2_char = {0: '>', 1: '<', '~': 2}
         self.n_chars = 3
 

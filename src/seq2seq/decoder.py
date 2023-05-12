@@ -3,18 +3,21 @@ from torch import nn, optim
 import torch.nn.functional as F
 
 class DecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, optimizer, device, lr):
+    def __init__(self, hidden_size, output_size, optimizer, device, lr, num_layers):
         super(DecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.device = device
         self.lr = lr
 
         self.embedding = nn.Embedding(output_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, num_layers = 2)
         self.out = nn.Linear(hidden_size, output_size)
         self.softmax = nn.LogSoftmax(dim=1)
+        self.num_layers = num_layers
         if optimizer == 'sgd':
             self.optimizer = optim.SGD(self.parameters(), lr=lr)
+        elif optimizer == 'adam':
+            self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
     def forward(self, input, hidden):
         output = self.embedding(input).view(1, 1, -1)
@@ -24,10 +27,10 @@ class DecoderRNN(nn.Module):
         return output, hidden
 
     def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=self.device)
+        return torch.zeros(self.num_layers, 1, self.hidden_size, device=self.device)
 
 class AttnDecoderRNN(nn.Module):
-    def __init__(self, hidden_size, output_size, device, optimizer, lr, dropout_p=0.1, max_length=20):
+    def __init__(self, hidden_size, output_size, device, optimizer, lr, num_layers, dropout_p=0.1, max_length=40):
         super(AttnDecoderRNN, self).__init__()
         self.hidden_size = hidden_size
         self.output_size = output_size
@@ -35,15 +38,18 @@ class AttnDecoderRNN(nn.Module):
         
         self.max_length = max_length
         self.device = device
-        if optimizer == 'sgd':
-            self.optimizer = optim.SGD(self.parameters(), lr=lr)
 
         self.embedding = nn.Embedding(self.output_size, self.hidden_size)
         self.attn = nn.Linear(self.hidden_size * 2, self.max_length)
         self.attn_combine = nn.Linear(self.hidden_size * 2, self.hidden_size)
         self.dropout = nn.Dropout(self.dropout_p)
-        self.gru = nn.GRU(self.hidden_size, self.hidden_size)
+        self.gru = nn.GRU(self.hidden_size, self.hidden_size, num_layers = num_layers)
         self.out = nn.Linear(self.hidden_size, self.output_size)
+        self.num_layers = num_layers
+        if optimizer == 'sgd':
+            self.optimizer = optim.SGD(self.parameters(), lr=lr)
+        elif optimizer == 'adam':
+            self.optimizer = optim.Adam(self.parameters(), lr=lr)
 
     def forward(self, input, hidden, encoder_outputs):
         embedded = self.embedding(input).view(1, 1, -1)
@@ -64,4 +70,4 @@ class AttnDecoderRNN(nn.Module):
         return output, hidden, attn_weights
 
     def initHidden(self):
-        return torch.zeros(1, 1, self.hidden_size, device=self.device)
+        return torch.zeros(self.num_layers, 1, self.hidden_size, device=self.device)
