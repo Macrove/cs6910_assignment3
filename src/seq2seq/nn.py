@@ -8,22 +8,38 @@ from seq2seq.encoder import EncoderRNN
 from seq2seq.decoder import DecoderRNN, AttnDecoderRNN
 
 class Transliterator():
-    def __init__(self, input_lang, output_lang, pairs, hidden_size, lr, optimizer, criterion, device, teacher_forcing_ratio, num_layers, max_length, use_attention: bool = False):
+    def __init__(self, n_iters, loss, optimizer, use_wandb,
+                 input_embedding_size, num_layer,
+                 hidden_size, cell_type, bidirectional, dropout, teacher_forcing_ratio,
+                 use_attention, input_lang, output_lang, pairs, device, max_length = 40):
+
         self.device = device
-        self.encoder = EncoderRNN(input_lang.n_chars, hidden_size, optimizer, self.device, lr, num_layers)
+        self.encoder = EncoderRNN(input_lang.n_chars, input_embedding_size, hidden_size, optimizer, device, num_layer, dropout)
         self.use_attention = use_attention
         if self.use_attention:
-            self.decoder = AttnDecoderRNN(hidden_size, output_lang.n_chars, device, optimizer, lr, num_layers)
+            self.decoder = AttnDecoderRNN(hidden_size, output_lang.n_chars, device, optimizer, num_layer, dropout, max_length)
         else:
-            self.decoder = DecoderRNN(hidden_size, output_lang.n_chars, optimizer, self.device, lr, num_layers)
+            self.decoder = DecoderRNN(hidden_size, output_lang.n_chars, optimizer, device, num_layer, dropout, max_length)
 
         self.input_lang = input_lang
         self.output_lang = output_lang
         self.max_length = max_length
-        if criterion == 'nlll':
+        if loss == 'nlll':
             self.criterion = nn.NLLLoss()
         self.pairs = pairs
         self.teacher_forcing_ratio = teacher_forcing_ratio
+        self.n_iters = n_iters
+        self.dropout = dropout
+        self.loss = loss
+        self.use_wandb = use_wandb
+        self.input_embedding_size = input_embedding_size
+        # self.n_encoder_layer = n_encoder_layer
+        # self.n_decoder_layer = n_decoder_layer
+        self.hidden_size = hidden_size
+        self.cell_type = cell_type
+        self.bidirectional = bidirectional
+        self.teacher_forcing_ratio = teacher_forcing_ratio
+
 
     def train(self, input_tensor, target_tensor):
         encoder_hidden = self.encoder.initHidden()
@@ -85,7 +101,8 @@ class Transliterator():
         return loss.item() / target_length
 
 
-    def fit(self, n_iters, compute_loss_every=100):
+    def fit(self, compute_loss_every=100):
+        n_iters = self.n_iters
         start = time.time()
         print_loss_total = 0  # Reset every print_every
 
