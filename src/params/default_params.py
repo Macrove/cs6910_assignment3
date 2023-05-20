@@ -1,6 +1,6 @@
 default_model_params = {
     "batch_size": 2048,
-    "epochs": 10,
+    "epochs": 1,
     "loss": "cross_entropy",
     "optimizer": "sgd",
     "use_wandb": 0,
@@ -8,11 +8,12 @@ default_model_params = {
     "input_embedding_size": 128,
     "num_layer": 1,
     "hidden_size": 128,
-    "cell_type": "gru",
+    "cell_type": "rnn",
     "bidirectional": 0,
     "dropout": 0.2,
     "teacher_forcing_ratio": 0.5,
     "use_attention": 0,
+    "save_model": 1
 }
 
 default_credentials = {

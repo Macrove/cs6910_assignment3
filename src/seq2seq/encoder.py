@@ -11,6 +11,8 @@ class EncoderRNN(nn.Module):
             self.rnn = nn.GRU(input_embedding_size, hidden_size, num_layers, dropout = dropout, device=self.device)
         elif self.cell_type == "lstm":
             self.rnn = nn.LSTM(input_embedding_size, hidden_size, num_layers, dropout=dropout, device = self.device)
+        else: #rnn
+            self.rnn = nn.RNN(input_embedding_size, hidden_size, num_layers, dropout = dropout, device=self.device)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input_tensor):
@@ -19,7 +21,7 @@ class EncoderRNN(nn.Module):
         embedded = self.dropout(self.embedding(input_tensor))
         #embedded_shape - seq_len, batch_size, embed_size
 
-        if self.cell_type == "gru":
+        if self.cell_type == "gru" or "rnn":
             output, hidden = self.rnn(embedded)
             return hidden
         

@@ -6,5 +6,6 @@ parser_choices = {
     "use_wandb": [0, 1],
     "cell_type": ['lstm', 'gru'],
     "bidirectional": [0, 1],
-    "use_attention": [0, 1]
+    "use_attention": [0, 1],
+    "save_model": [0, 1]
 }

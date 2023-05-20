@@ -1,4 +1,5 @@
 import os
+import torch
 import time
 import matplotlib.pyplot as plt
 import wandb
@@ -27,7 +28,7 @@ target_field.build_vocab(train_dataset)
 
 def main(loss, optimizer, use_wandb, input_embedding_size,
          num_layer, hidden_size, cell_type, bidirectional, 
-         dropout, teacher_forcing_ratio, use_attention, batch_size, epochs):
+         dropout, teacher_forcing_ratio, use_attention, batch_size, epochs, save_model):
 
      #making iterators
      train_iterator = BucketIterator(train_dataset, batch_size=batch_size, device=DEVICE, sort_key=lambda x: len(x.src), sort_within_batch=True)
@@ -49,6 +50,10 @@ def main(loss, optimizer, use_wandb, input_embedding_size,
      # accuracy on validation data
      val_acc = eng2hin.validate() * 100
      print(f"Word level accuracy : {val_acc:.4} %")
+     
+     if save_model == True:
+          torch.save(eng2hin.state_dict(), f"./model_{num_layer}_{dropout}_{input_embedding_size}_{epochs}")
+          
 
      if use_wandb:
           wandb.log({"val_acc": val_acc})

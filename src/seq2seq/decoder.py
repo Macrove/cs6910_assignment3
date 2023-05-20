@@ -13,6 +13,8 @@ class DecoderRNN(nn.Module):
             self.rnn = nn.GRU(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout, device=self.device)
         elif self.cell_type == "lstm":
             self.rnn = nn.LSTM(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout, device=self.device)
+        else: #rnn
+            self.rnn = nn.RNN(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout, device=self.device)
         self.fc = nn.Linear(hidden_size, output_size, device=self.device)
         # self.softmax = nn.LogSoftmax(dim=1)
         self.dropout = nn.Dropout(dropout)
@@ -32,7 +34,7 @@ class DecoderRNN(nn.Module):
             predictions = predictions.squeeze(0)
 
             return predictions, hidden, cell
-        elif self.cell_type == "gru":
+        elif self.cell_type == "gru" or "rnn":
             input = input.unsqueeze(0)
             #input shape now - (1, N)
             embedded = self.dropout(self.embedding(input))

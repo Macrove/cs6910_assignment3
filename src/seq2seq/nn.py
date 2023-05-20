@@ -69,7 +69,7 @@ class Transliterator(nn.Module):
 
             return decoder_outputs
 
-        elif self.cell_type == 'gru':
+        elif self.cell_type == 'gru' or "rnn":
             target_length = target_tensor.shape[0]
             target_n_chars = len(self.target_field.vocab)
 
@@ -171,7 +171,7 @@ class Transliterator(nn.Module):
                 outputs.append(best_guess)
                 if output.argmax(1).item() == self.target_field.vocab.stoi["<eos>"]:
                     break
-        elif self.cell_type == "gru":
+        elif self.cell_type == "gru" or "rnn":
             with torch.no_grad():
                 hidden = self.encoder(input_tensor)
 

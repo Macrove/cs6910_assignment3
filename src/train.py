@@ -33,6 +33,7 @@ parser.add_argument("-do", "--dropout", default=default_model_params["dropout"])
 parser.add_argument("-tfe", "--teacher_forcing_ratio", default=default_model_params["teacher_forcing_ratio"])
 parser.add_argument("-ua", "--use_attention", choices=parser_choices["use_attention"], default=default_model_params["use_attention"], type=int)
 parser.add_argument("-bs", "--batch_size", default=default_model_params["batch_size"], type=int)
+parser.add_argument("-sm", "--save_model", choices=parser_choices["save_model"], default=default_model_params["save_model"], type=int)
 args = parser.parse_args()
 print(args)
 
@@ -59,6 +60,7 @@ dropout = args.dropout
 teacher_forcing_ratio = args.teacher_forcing_ratio
 use_attention = args.use_attention
 batch_size = args.batch_size
+save_model = args.save_model
 
 if use_wandb:
     run = wandb.init(project=args.wandb_project, entity=args.wandb_entity)
@@ -87,4 +89,4 @@ if use_wandb:
 if __name__ == '__main__':
     main(loss, optimizer, use_wandb,
          input_embedding_size, num_layer, hidden_size,
-         cell_type, bidirectional, dropout, teacher_forcing_ratio, use_attention, batch_size, epochs)
+         cell_type, bidirectional, dropout, teacher_forcing_ratio, use_attention, batch_size, epochs, save_model)
