@@ -9,3 +9,4 @@ LANG1NAME = "English"
 LANG2NAME = "Hindi"
 
 DEVICE = 'cuda' if cuda.is_available() else 'cpu'
+# DEVICE = 'cpu'

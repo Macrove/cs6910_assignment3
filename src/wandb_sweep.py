@@ -5,7 +5,6 @@ from params.default_params import optimizer_param_map, default_model_params
 def run_sweeps():
     run = wandb.init()
     config = wandb.config
-    run.name = f"n_enc_{config.optimizer}_n_dec_{config.lr}"
 
     n_iter = config.n_iter
     loss = config.loss
@@ -25,6 +24,7 @@ def run_sweeps():
     dropout = config.dropout
     teacher_forcing_ratio = config.teacher_forcing_ratio
     use_attention = default_model_params["use_attention"]
+    run.name = f"nl_{num_layer}_hs_{hidden_size}"
 
     main(n_iter, loss, optimizer, use_wandb,
          input_embedding_size, num_layer, hidden_size,
@@ -60,4 +60,4 @@ sweep_configuration = {
 
 
 sweep_id = wandb.sweep(sweep=sweep_configuration, project="cs6910-assignment-3", entity="me19b110")
-wandb.agent(sweep_id=sweep_id, function=run_sweeps, count=1)
+wandb.agent(sweep_id=sweep_id, function=run_sweeps, count=100)

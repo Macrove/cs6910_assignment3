@@ -15,17 +15,16 @@ optimizer = optimizer_param_map[default_model_params["optimizer"]]
 
 parser.add_argument("-wp", "--wandb_project", choices= parser_choices["wandb_project"], default=default_credentials["wandb_project"])
 parser.add_argument("-we", "--wandb_entity", choices=parser_choices["wandb_entity"], default=default_credentials["wandb_entity"])
-parser.add_argument("-n_iter", "--n_iter", default=default_model_params["n_iter"], type=int)
+parser.add_argument("-ep", "--epochs", default=default_model_params["epochs"], type=int)
 parser.add_argument("-l", "--loss", choices= parser_choices["loss"], default=default_model_params["loss"])
 parser.add_argument("-o", "--optimizer", choices=parser_choices["optimizer"], default=default_model_params["optimizer"])
 parser.add_argument("-lr", "--lr", default=optimizer["default_params"]["lr"], type=float)
 parser.add_argument("-m", "--momentum", default=optimizer_param_map["sgd"]["default_params"]["momentum"], type=float)
 parser.add_argument("-bt1", "--beta1", default=optimizer_param_map["adam"]["default_params"]["betas"][0], type=float)
 parser.add_argument("-bt2", "--beta2", default=optimizer_param_map["adam"]["default_params"]["betas"][1], type=float)
+parser.add_argument("-wd", "--weight_decay", default=optimizer_param_map["sgd"]["default_params"]["weight_decay"], type=float)
 parser.add_argument("-wb", "--use_wandb", choices=parser_choices["use_wandb"], default=default_model_params["use_wandb"], type=int)
 parser.add_argument("-ies", "--input_embedding_size", default=default_model_params["input_embedding_size"], type=int)
-# parser.add_argument("-nel", "--n_encoder_layer", default=default_model_params["n_encoder_layer"], type=int)
-# parser.add_argument("-oel", "--n_decoder_layer", default=default_model_params["n_decoder_layer"], type=int)
 parser.add_argument("-nl", "--num_layer", default=default_model_params["num_layer"], type=int)
 parser.add_argument("-hs", "--hidden_size", default=default_model_params["hidden_size"], type=int)
 parser.add_argument("-ct", "--cell_type", choices=parser_choices["cell_type"], default=default_model_params["cell_type"])
@@ -33,10 +32,11 @@ parser.add_argument("-bd", "--bidirectional", choices=parser_choices["bidirectio
 parser.add_argument("-do", "--dropout", default=default_model_params["dropout"])
 parser.add_argument("-tfe", "--teacher_forcing_ratio", default=default_model_params["teacher_forcing_ratio"])
 parser.add_argument("-ua", "--use_attention", choices=parser_choices["use_attention"], default=default_model_params["use_attention"], type=int)
+parser.add_argument("-bs", "--batch_size", default=default_model_params["batch_size"], type=int)
 args = parser.parse_args()
 print(args)
 
-n_iter = args.n_iter
+epochs = args.epochs
 loss = args.loss
 args.betas = (args.beta1, args.beta2)
 
@@ -51,8 +51,6 @@ betas = args.betas
 momentum = args.momentum
 use_wandb = args.use_wandb
 input_embedding_size = args.input_embedding_size
-# n_encoder_layer = args.n_encoder_layer
-# n_decoder_layer = args.n_decoder_layer
 num_layer = args.num_layer
 hidden_size = args.hidden_size
 cell_type = args.cell_type
@@ -60,12 +58,13 @@ bidirectional = args.bidirectional
 dropout = args.dropout
 teacher_forcing_ratio = args.teacher_forcing_ratio
 use_attention = args.use_attention
+batch_size = args.batch_size
 
 if use_wandb:
     run = wandb.init(project=args.wandb_project, entity=args.wandb_entity)
     run.name = "ac_{}_opt_{}".format(args.activation, args.optimizer)
     wandb.log({
-        "n_iter": args.n_iter,
+        "epochs": args.epochs,
         "loss": args.loss,
         "optimizer": args.optimizer.name,
         "lr": args.lr,
@@ -74,8 +73,6 @@ if use_wandb:
         "momentum": args.momentum,
         "use_wandb": args.use_wandb,
         "input_embedding_size": args.input_embedding_size,
-        # "n_encoder_layer": args.n_encoder_layer,
-        # "n_decoder_layer": args.n_decoder_layer,
         "num_layer": args.num_layer,
         "hidden_size": args.hidden_layer_size,
         "cell_type": args.cell_type,
@@ -83,10 +80,11 @@ if use_wandb:
         "dropout": args.dropout,
         "teacher_forcing_ratio": args.teacher_forcing_ratio,
         "use_attention": args.use_attention,
+        "batch_size": args.batch_size
     })
     run.log_code()
 
 if __name__ == '__main__':
-    main(n_iter, loss, optimizer, use_wandb,
+    main(loss, optimizer, use_wandb,
          input_embedding_size, num_layer, hidden_size,
-         cell_type, bidirectional, dropout, teacher_forcing_ratio, use_attention)
+         cell_type, bidirectional, dropout, teacher_forcing_ratio, use_attention, batch_size, epochs)

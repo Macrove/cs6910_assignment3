@@ -1,20 +1,18 @@
 default_model_params = {
-    "n_iter": 75000,
+    "batch_size": 64,
+    "epochs": 10,
     "loss": "nlll",
     "optimizer": "sgd",
-    "lr": 0.01,
     "use_wandb": 0,
     "is_bidirectional": False,
-    "input_embedding_size": 256,
-    # "n_encoder_layer": 2,
-    # "n_decoder_layer": 3,
+    "input_embedding_size": 128,
     "num_layer": 2,
     "hidden_size": 128,
-    "cell_type": "gru",
+    "cell_type": "lstm",
     "bidirectional": 0,
     "dropout": 0.2,
     "teacher_forcing_ratio": 0.5,
-    "use_attention": 1
+    "use_attention": 0,
 }
 
 default_credentials = {
@@ -26,15 +24,16 @@ optimizer_param_map = {
     "sgd" : {
         "name": "sgd",
         "default_params": dict(
-            lr = 0.01,
-            momentum= 0.01,
+           lr = 0.5,
+            momentum= 0.5,
+            weight_decay=0.0
         )
     },
     "adam" : {
         "name": "adam",
         "default_params": dict(
-            lr= 0.01,
-            betas= (0.9, 0.99),
+            lr= 0.001,
+            betas= (0.7, 0.8),
         )
     }
 }

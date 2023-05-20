@@ -1,27 +1,28 @@
-import torch
-from torch import nn, optim
+from torch import nn
 
 class EncoderRNN(nn.Module):
-    def __init__(self, input_size, input_embedding_size, hidden_size, optimizer, device, num_layers, dropout):
+    def __init__(self, input_size, input_embedding_size, hidden_size, device, num_layers, dropout, cell_type):
         super(EncoderRNN, self).__init__()
 
-        self.hidden_size = hidden_size
-
-        self.embedding = nn.Embedding(input_size, input_embedding_size)
-        self.gru = nn.GRU(input_embedding_size, hidden_size, num_layers, dropout = dropout)
         self.device = device
+        self.embedding = nn.Embedding(input_size, input_embedding_size, device=self.device)
+        self.cell_type = cell_type
+        if self.cell_type == "gru":
+            self.rnn = nn.GRU(input_embedding_size, hidden_size, num_layers, dropout = dropout, device=self.device)
+        else:
+            self.rnn = nn.LSTM(input_embedding_size, hidden_size, num_layers, dropout=dropout, device = self.device)
         self.dropout = nn.Dropout(dropout)
-        self.num_layers = num_layers
-        if optimizer["name"] == 'sgd':
-            self.optimizer = optim.SGD(self.parameters(), **optimizer["default_params"])
-        elif optimizer["name"] == 'adam':
-            self.optimizer = optim.Adam(self.parameters(), **optimizer["default_params"])
 
-    def forward(self, input, hidden):
-        embedded = self.embedding(input).view(1, 1, -1)
-        output = self.dropout(embedded)
-        output, hidden = self.gru(output, hidden)
-        return output, hidden
+    def forward(self, input_tensor):
 
-    def initHidden(self):
-        return torch.zeros(self.num_layers, 1, self.hidden_size, device=self.device)
+        # input_tensor shape - seq_len, batch_size
+        embedded = self.dropout(self.embedding(input_tensor))
+        #embedded_shape - seq_len, batch_size, embed_size
+
+        if self.cell_type == "gru":
+            output, hidden = self.rnn(embedded)
+            return output, hidden
+        
+        else:
+            output, (hidden, cell) = self.rnn(embedded)
+            return hidden, cell
