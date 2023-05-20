@@ -92,6 +92,7 @@ class Transliterator(nn.Module):
 
     def fit(self):
         num_epochs = self.epochs
+        print("Training")
         for epoch in range(num_epochs):
             print(f"[Epoch {epoch} / {num_epochs}]")
             self.train()
@@ -116,14 +117,19 @@ class Transliterator(nn.Module):
 
                 # Gradient descent step
                 self.optimizer.step()
-            self.evaluate_loss(self.valid_iterator)
+            self.evaluate_loss(self.train_iterator, "train")
+            self.evaluate_loss(self.valid_iterator, "val")
         
 
-    def evaluate_loss(self, iterator):
+    def evaluate_loss(self, iterator, dataset_type):
         self.eval()
         with torch.no_grad():
             loss = 0
-            for batch_idx, batch in enumerate(iterator):
+            if dataset_type == "train":
+                print("Evaluating training loss")
+            elif dataset_type == "val":
+                print("Evaluating validation loss")
+            for batch_idx, batch in tqdm(enumerate(iterator), total=len(iterator)):
                 inp_data, inp_len = batch.src
                 target, trg_len = batch.trg
                 # Forward prop
@@ -133,11 +139,14 @@ class Transliterator(nn.Module):
                 target = target[1:].reshape(-1)
 
                 loss += self.criterion(output, target).item()
-            print(f"val_loss - {loss:.4}")
+            print(f"{dataset_type}_loss - {loss:.4f}")
+            if self.use_wandb:
+                wandb.log({f"{dataset_type}_loss": round(loss, 4)})
 
     def validate(self):
         correct = 0
-        for pair in self.valid_dataset:
+        print("Evaluating word level accuracy")
+        for pair in tqdm(self.valid_dataset, total=len(self.valid_dataset)):
             pred_word = self.predict(pair.src)
             target_word = "".join(pair.trg)
             if pred_word == target_word:

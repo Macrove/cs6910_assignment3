@@ -13,7 +13,7 @@ default_model_params = {
     "dropout": 0.2,
     "teacher_forcing_ratio": 0.5,
     "use_attention": 0,
-    "save_model": 1
+    "save_model": 0
 }
 
 default_credentials = {
@@ -27,7 +27,6 @@ optimizer_param_map = {
         "default_params": dict(
            lr = 0.5,
             momentum= 0.5,
-            weight_decay=0.0
         )
     },
     "adam" : {

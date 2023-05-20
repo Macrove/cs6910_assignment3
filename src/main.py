@@ -45,14 +45,14 @@ def main(loss, optimizer, use_wandb, input_embedding_size,
      eng2hin.fit()
      end = time.time()
 
-     print("Total training time: ", (end - start)/1000, " s")
+     print("Total training time: ", (end - start), "s")
     
      # accuracy on validation data
      val_acc = eng2hin.validate() * 100
-     print(f"Word level accuracy : {val_acc:.4} %")
+     print(f"Word level accuracy : {val_acc:.4f} %\n")
      
      if save_model == True:
-          torch.save(eng2hin.state_dict(), f"./model_{num_layer}_{dropout}_{input_embedding_size}_{epochs}")
+          torch.save(eng2hin.state_dict(), f"./model_{val_acc:.2f}_{num_layer}_{dropout}_{input_embedding_size}_{epochs}")
           
 
      if use_wandb:

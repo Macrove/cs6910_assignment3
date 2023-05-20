@@ -22,7 +22,7 @@ parser.add_argument("-lr", "--lr", default=optimizer["default_params"]["lr"], ty
 parser.add_argument("-m", "--momentum", default=optimizer_param_map["sgd"]["default_params"]["momentum"], type=float)
 parser.add_argument("-bt1", "--beta1", default=optimizer_param_map["adam"]["default_params"]["betas"][0], type=float)
 parser.add_argument("-bt2", "--beta2", default=optimizer_param_map["adam"]["default_params"]["betas"][1], type=float)
-parser.add_argument("-wd", "--weight_decay", default=optimizer_param_map["sgd"]["default_params"]["weight_decay"], type=float)
+# parser.add_argument("-wd", "--weight_decay", default=optimizer_param_map["sgd"]["default_params"]["weight_decay"], type=float)
 parser.add_argument("-wb", "--use_wandb", choices=parser_choices["use_wandb"], default=default_model_params["use_wandb"], type=int)
 parser.add_argument("-ies", "--input_embedding_size", default=default_model_params["input_embedding_size"], type=int)
 parser.add_argument("-nl", "--num_layer", default=default_model_params["num_layer"], type=int)
