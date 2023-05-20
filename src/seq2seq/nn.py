@@ -69,6 +69,27 @@ class Transliterator(nn.Module):
 
             return decoder_outputs
 
+        elif self.cell_type == 'gru':
+            target_length = target_tensor.shape[0]
+            target_n_chars = len(self.target_field.vocab)
+
+            encoder_hidden = self.encoder(input_tensor)
+
+            decoder_input = target_tensor[0] # sos token
+            decoder_outputs = torch.zeros(target_length, self.batch_size, target_n_chars, device=self.device)
+
+            decoder_hidden = encoder_hidden
+
+            for t in range(1, target_length):
+                decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+                decoder_outputs[t] = decoder_output
+
+                best_guess = decoder_output.argmax(1)
+
+                decoder_input = target_tensor[t] if random.random() < self.teacher_forcing_ratio else best_guess
+
+            return decoder_outputs
+
     def fit(self):
         num_epochs = self.epochs
         for epoch in range(num_epochs):
@@ -135,21 +156,37 @@ class Transliterator(nn.Module):
         text_to_indices = [self.source_field.vocab.stoi[token] for token in tokens]
 
         input_tensor = torch.LongTensor(text_to_indices).unsqueeze(1).to(self.device)
-        with torch.no_grad():
-            hidden, cell = self.encoder(input_tensor)
-
-        outputs = [self.target_field.vocab.stoi["<sos>"]]
-
-        for _ in range(self.max_length):
-            previous_char = torch.LongTensor([outputs[-1]]).to(self.device)
+        if self.cell_type == "lstm":
             with torch.no_grad():
-                output, hidden, cell = self.decoder(previous_char, hidden, cell)
-                best_guess = output.argmax(1).item()
+                hidden, cell = self.encoder(input_tensor)
 
-            outputs.append(best_guess)
-            if output.argmax(1).item() == self.target_field.vocab.stoi["<eos>"]:
-                break
+            outputs = [self.target_field.vocab.stoi["<sos>"]]
 
+            for _ in range(self.max_length):
+                previous_char = torch.LongTensor([outputs[-1]]).to(self.device)
+                with torch.no_grad():
+                    output, hidden, cell = self.decoder(previous_char, hidden, cell)
+                    best_guess = output.argmax(1).item()
+
+                outputs.append(best_guess)
+                if output.argmax(1).item() == self.target_field.vocab.stoi["<eos>"]:
+                    break
+        elif self.cell_type == "gru":
+            with torch.no_grad():
+                hidden = self.encoder(input_tensor)
+
+            outputs = [self.target_field.vocab.stoi["<sos>"]]
+
+            for _ in range(self.max_length):
+                previous_char = torch.LongTensor([outputs[-1]]).to(self.device)
+                with torch.no_grad():
+                    output, hidden = self.decoder(previous_char, hidden)
+                    best_guess = output.argmax(1).item()
+
+                outputs.append(best_guess)
+                if output.argmax(1).item() == self.target_field.vocab.stoi["<eos>"]:
+                    break
+            
         pred_chars = [self.target_field.vocab.itos[idx] for idx in outputs]
         pred_chars = pred_chars[1:-1]
         pred_word = "".join(pred_chars)

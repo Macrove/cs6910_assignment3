@@ -46,7 +46,7 @@ def main(loss, optimizer, use_wandb, input_embedding_size,
 
      print("Total training time: ", (end - start)/1000, " s")
     
-     # accuracu on validation data
+     # accuracy on validation data
      val_acc = eng2hin.validate() * 100
      print(f"Word level accuracy : {val_acc:.4} %")
 

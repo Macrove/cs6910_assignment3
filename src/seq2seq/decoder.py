@@ -11,26 +11,39 @@ class DecoderRNN(nn.Module):
         self.embedding = nn.Embedding(output_size, output_embedding_size, device=self.device)
         if self.cell_type == "gru":
             self.rnn = nn.GRU(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout, device=self.device)
-        else:
+        elif self.cell_type == "lstm":
             self.rnn = nn.LSTM(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout, device=self.device)
         self.fc = nn.Linear(hidden_size, output_size, device=self.device)
         # self.softmax = nn.LogSoftmax(dim=1)
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, input, hidden, cell = 0):
-        input = input.unsqueeze(0)
-        #input shape now - (1, N)
+        if self.cell_type == "lstm":
+            input = input.unsqueeze(0)
+            #input shape now - (1, N)
 
-        embedded = self.dropout(self.embedding(input))
-        # embedding shape: (1, N, embedding_size)
+            embedded = self.dropout(self.embedding(input))
+            # embedding shape: (1, N, embedding_size)
 
-        outputs, (hidden, cell) = self.rnn(embedded, (hidden, cell))
-        # outputs shape: (1, N, hidden_size)
+            outputs, (hidden, cell) = self.rnn(embedded, (hidden, cell))
+            # outputs shape: (1, N, hidden_size)
 
-        predictions = self.fc(outputs)
-        predictions = predictions.squeeze(0)
+            predictions = self.fc(outputs)
+            predictions = predictions.squeeze(0)
 
-        return predictions, hidden, cell
+            return predictions, hidden, cell
+        elif self.cell_type == "gru":
+            input = input.unsqueeze(0)
+            #input shape now - (1, N)
+            embedded = self.dropout(self.embedding(input))
+            # embedding shape: (1, N, embedding_size)
+            outputs, hidden = self.rnn(embedded, hidden)
+            # outputs shape: (1, N, hidden_size)
+
+            predictions = self.fc(outputs)
+            predictions = predictions.squeeze(0)
+
+            return predictions, hidden
 
 class AttnDecoderRNN(nn.Module):
     def __init__(self, hidden_size, output_size, device, optimizer, num_layers, dropout, cell_type, max_length=40):

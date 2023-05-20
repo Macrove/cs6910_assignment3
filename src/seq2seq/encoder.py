@@ -9,7 +9,7 @@ class EncoderRNN(nn.Module):
         self.cell_type = cell_type
         if self.cell_type == "gru":
             self.rnn = nn.GRU(input_embedding_size, hidden_size, num_layers, dropout = dropout, device=self.device)
-        else:
+        elif self.cell_type == "lstm":
             self.rnn = nn.LSTM(input_embedding_size, hidden_size, num_layers, dropout=dropout, device = self.device)
         self.dropout = nn.Dropout(dropout)
 
@@ -21,8 +21,8 @@ class EncoderRNN(nn.Module):
 
         if self.cell_type == "gru":
             output, hidden = self.rnn(embedded)
-            return output, hidden
+            return hidden
         
-        else:
+        elif self.cell_type == "lstm":
             output, (hidden, cell) = self.rnn(embedded)
             return hidden, cell

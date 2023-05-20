@@ -48,8 +48,6 @@ sweep_configuration = {
         'beta2': {'min': 0.6, 'max': 0.61},
         'momentum': {'min': 0.5, 'max': 0.9},
         "input_embedding_size": {'min': 128, 'max': 1024},
-        # "n_encoder_layer": {'min': 1, 'max': 5},
-        # "n_decoder_layer": {'min': 1, 'max': 5},
         "num_layer": {'min': 1, 'max': 5},
         "hidden_size": {'min': 128, 'max': 1024},
         "cell_type": {'values': ['gru', 'lstm']},
