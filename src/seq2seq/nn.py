@@ -30,9 +30,8 @@ class Transliterator(nn.Module):
 
 
         self.max_length = max_length
-        pad_idx = target_field.vocab.stoi["<pad>"]
-        if loss == 'nlll':
-            self.criterion = nn.CrossEntropyLoss(ignore_index=pad_idx)
+        if loss == 'cross_entropy':
+            self.criterion = nn.CrossEntropyLoss(ignore_index=target_field.vocab.stoi["<pad>"]) #ignore pad index
         self.teacher_forcing_ratio = teacher_forcing_ratio
         self.dropout = dropout
         self.cell_type = cell_type
@@ -50,13 +49,12 @@ class Transliterator(nn.Module):
     def forward(self, input_tensor, target_tensor):
         if self.cell_type == 'lstm':
             target_length = target_tensor.shape[0]
-            batch_size = input_tensor.shape[1]
             target_n_chars = len(self.target_field.vocab)
 
             encoder_hidden, encoder_cell = self.encoder(input_tensor)
 
             decoder_input = target_tensor[0] # sos token
-            decoder_outputs = torch.zeros(target_length, batch_size, target_n_chars, device=self.device)
+            decoder_outputs = torch.zeros(target_length, self.batch_size, target_n_chars, device=self.device)
 
             decoder_hidden = encoder_hidden
             decoder_cell = encoder_cell
@@ -123,7 +121,6 @@ class Transliterator(nn.Module):
             target_word = "".join(pair.trg)
             if pred_word == target_word:
                 correct+=1
-            print(pred_word, target_word)
 
         accuracy = correct/len(self.valid_dataset)
         return accuracy

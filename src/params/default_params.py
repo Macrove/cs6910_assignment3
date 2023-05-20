@@ -1,7 +1,7 @@
 default_model_params = {
     "batch_size": 64,
     "epochs": 10,
-    "loss": "nlll",
+    "loss": "cross_entropy",
     "optimizer": "sgd",
     "use_wandb": 0,
     "is_bidirectional": False,
