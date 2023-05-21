@@ -8,22 +8,22 @@ class EncoderRNN(nn.Module):
         self.device = device
         self.hidden_size = hidden_size
         self.num_layers = num_layers
-        self.embedding = nn.Embedding(input_size, input_embedding_size, device=self.device)
+        self.embedding = nn.Embedding(input_size, input_embedding_size)
         self.cell_type = cell_type
         if use_attention:
             self.use_attention = True
         else:
             self.use_attention = False
         if self.cell_type == "gru":
-            self.rnn = nn.GRU(input_embedding_size, hidden_size, num_layers, dropout = dropout, device=self.device)
+            self.rnn = nn.GRU(input_embedding_size, hidden_size, num_layers, dropout = dropout)
         elif self.cell_type == "lstm":
-            self.rnn = nn.LSTM(input_embedding_size, hidden_size, num_layers, dropout=dropout, device = self.device, bidirectional = self.use_attention)
+            self.rnn = nn.LSTM(input_embedding_size, hidden_size, num_layers, dropout=dropout, bidirectional = self.use_attention)
         else: #rnn
-            self.rnn = nn.RNN(input_embedding_size, hidden_size, num_layers, dropout = dropout, device=self.device)
+            self.rnn = nn.RNN(input_embedding_size, hidden_size, num_layers, dropout = dropout)
         self.dropout = nn.Dropout(dropout)
         if self.use_attention:
-            self.fc_hidden = nn.Linear(hidden_size * 2, hidden_size).to(self.device)
-            self.fc_cell = nn.Linear(hidden_size * 2, hidden_size).to(self.device)
+            self.fc_hidden = nn.Linear(hidden_size * 2, hidden_size)
+            self.fc_cell = nn.Linear(hidden_size * 2, hidden_size)
 
     def forward(self, input_tensor):
 

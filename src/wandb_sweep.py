@@ -25,6 +25,8 @@ def run_sweeps():
     epochs = config["epochs"]
     save_model = default_model_params["save_model"]
     run.name = f"nl_{num_layer}_hs_{hidden_size}"
+    if use_attention:
+        config.num_layer, num_layer = 1, 1
 
     main(loss, optimizer, use_wandb,
          input_embedding_size, num_layer, hidden_size,
@@ -46,13 +48,13 @@ sweep_configuration = {
         'beta1': {'min': 0.7, 'max': 0.73},
         'beta2': {'min': 0.65, 'max': 0.68},
         'momentum': {'min': 0.5, 'max': 0.6},
-        "input_embedding_size": {'values': [256]},
+        "input_embedding_size": {'values': [512]},
         "num_layer": {'min': 5, 'max': 6},
-        "hidden_size": {'values': [512]},
+        "hidden_size": {'values': [1024]},
         "cell_type": {'values': ['lstm']},
-        "dropout": {'min': 0.3, 'max': 0.4},
-        "teacher_forcing_ratio": {'min': 0.2, 'max': 0.3},
-        "epochs": {'min': 25, 'max': 30}
+        "dropout": {'min': 0.4, 'max': 0.5},
+        "teacher_forcing_ratio": {'min': 0.2, 'max': 0.5},
+        "epochs": {'min': 10, 'max': 15}
     }
 }
 

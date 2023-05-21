@@ -13,18 +13,18 @@ class DecoderRNN(nn.Module):
         self.use_attention = use_attention
 
 
-        self.embedding = nn.Embedding(output_size, output_embedding_size, device=self.device)
+        self.embedding = nn.Embedding(output_size, output_embedding_size)
         if self.cell_type == "gru":
-            self.rnn = nn.GRU(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout, device=self.device)
+            self.rnn = nn.GRU(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout)
         elif self.cell_type == "lstm":
-            if self.use_attention == 0:
-                self.rnn = nn.LSTM(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout, device=self.device)
+            if not self.use_attention:
+                self.rnn = nn.LSTM(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout)
             else:
-                self.rnn = nn.LSTM(hidden_size * 2 + output_embedding_size, hidden_size, num_layers)
+                self.rnn = nn.LSTM(hidden_size * 2 + output_embedding_size, hidden_size, num_layers, dropout=dropout)
 
         else: #rnn
-            self.rnn = nn.RNN(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout, device=self.device)
-        self.fc = nn.Linear(hidden_size, output_size, device=self.device)
+            self.rnn = nn.RNN(output_embedding_size, hidden_size, num_layers = num_layers, dropout = dropout)
+        self.fc = nn.Linear(hidden_size, output_size)
         # self.softmax = nn.LogSoftmax(dim=1)
         self.dropout = nn.Dropout(dropout)
         if self.use_attention:

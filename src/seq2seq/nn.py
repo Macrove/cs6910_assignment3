@@ -28,7 +28,7 @@ class Transliterator(nn.Module):
 
         self.max_length = max_length
         if loss == 'cross_entropy':
-            self.criterion = nn.CrossEntropyLoss(ignore_index=target_field.vocab.stoi["<pad>"]) #ignore pad index
+            self.criterion = nn.CrossEntropyLoss(ignore_index=target_field.vocab.stoi["<pad>"]).to(device) #ignore pad index
         self.teacher_forcing_ratio = teacher_forcing_ratio
         self.dropout = dropout
         self.cell_type = cell_type
@@ -93,7 +93,7 @@ class Transliterator(nn.Module):
 
             for t in range(1, target_length):
                 # At every time step use encoder_states and update hidden, cell
-                output, hidden, cell = self.decoder(x, encoder_states, hidden, cell)
+                output, hidden, cell = self.decoder(x, hidden, cell, encoder_states)
 
                 # Store prediction for current time step
                 outputs[t] = output
@@ -122,10 +122,7 @@ class Transliterator(nn.Module):
                 inp_data, inp_len = batch.src
                 target, trg_len = batch.trg
                 # Forward prop
-                if self.use_attention == False:
-                    output = self(inp_data, target)
-                else: #using attention
-                    output, attention = self(inp_data, target)
+                output = self(inp_data, target)
 
                 output = output[1:].reshape(-1, output.shape[2])
                 target = target[1:].reshape(-1)
@@ -158,10 +155,7 @@ class Transliterator(nn.Module):
                 inp_data, inp_len = batch.src
                 target, trg_len = batch.trg
                 # Forward prop
-                if self.use_attention == False:
-                    output = self(inp_data, target)
-                else: #using attention
-                    output, attention = self(inp_data, target)
+                output = self(inp_data, target)
 
                 output = output[1:].reshape(-1, output.shape[2])
                 target = target[1:].reshape(-1)
@@ -202,14 +196,20 @@ class Transliterator(nn.Module):
         input_tensor = torch.LongTensor(text_to_indices).unsqueeze(1).to(self.device)
         if self.cell_type == "lstm":
             with torch.no_grad():
-                hidden, cell = self.encoder(input_tensor)
+                if self.use_attention:
+                    outputs_encoder, hidden, cell = self.encoder(input_tensor)
+                else:
+                    hidden, cell = self.encoder(input_tensor)
 
             outputs = [self.target_field.vocab.stoi["<sos>"]]
 
             for _ in range(self.max_length):
                 previous_char = torch.LongTensor([outputs[-1]]).to(self.device)
                 with torch.no_grad():
-                    output, hidden, cell = self.decoder(previous_char, hidden, cell)
+                    if self.use_attention:
+                        output, hidden, cell = self.decoder(previous_char, hidden, cell, outputs_encoder)
+                    else:
+                        output, hidden, cell = self.decoder(previous_char, hidden, cell)
                     best_guess = output.argmax(1).item()
 
                 outputs.append(best_guess)

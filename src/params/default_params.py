@@ -1,19 +1,19 @@
 default_model_params = {
-    "batch_size": 512,
-    "epochs": 1,
+    "batch_size": 128,
+    "epochs": 12,
     "loss": "cross_entropy",
     "optimizer": "adam",
     "use_wandb": 0,
     "is_bidirectional": False,
-    "input_embedding_size": 256,
+    "input_embedding_size": 512,
     "num_layer": 1,
-    "hidden_size": 512,
+    "hidden_size": 1024,
     "cell_type": "lstm",
     "bidirectional": 0,
     "dropout": 0,
     "teacher_forcing_ratio": 0.5,
     "use_attention": 1,
-    "save_model": 0
+    "save_model": 1
 }
 
 default_credentials = {
