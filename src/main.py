@@ -48,12 +48,35 @@ def main(loss, optimizer, use_wandb, input_embedding_size,
      print("Total training time: ", (end - start), "s")
     
      # accuracy on validation data
-     val_acc = eng2hin.validate() * 100
+     val_acc, _ = eng2hin.validate(valid_dataset)
+     val_acc *= 100
      print(f"Word level accuracy : {val_acc:.4f} %\n")
      
      if save_model == True:
+          test_acc, pred_target_pairs = eng2hin.validate(test_dataset, return_preds=True)
+          test_acc*=100
+          print("Best Test Accuracy: ", test_acc)
+          df = pd.DataFrame(pred_target_pairs, columns=["pred_word", "target_word", "isCorrect"])
+          df.to_csv("./predictions_vanilla/predictions.csv", index=False)
+
+          correct_predictions = [x for x in pred_target_pairs if x[2] == True][:20]
+          incorrect_predictions = [x for x in pred_target_pairs if x[2] == False][:20]
+
+          correct_df = pd.DataFrame(correct_predictions, columns=["Predicted Word", "Target Word", "Correct"])
+          incorrect_df = pd.DataFrame(incorrect_predictions, columns=["Predicted Word", "Target Word", "Correct"])
+
+          correct_table = wandb.Table(dataframe=correct_df)
+          incorrect_table = wandb.Table(dataframe=incorrect_df)
+
+          wandb.log({"Correct Predictions": correct_table,
+           "Incorrect Predictions": incorrect_table})
+
+
+
           torch.save(eng2hin.state_dict(), f"./model_{val_acc:.2f}_{num_layer}_{dropout}_{input_embedding_size}_{epochs}")
           
 
      if use_wandb:
           wandb.log({"val_acc": val_acc})
+
+     

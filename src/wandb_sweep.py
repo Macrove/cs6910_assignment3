@@ -31,7 +31,7 @@ def run_sweeps():
          cell_type, bidirectional, dropout, teacher_forcing_ratio, use_attention, batch_size, epochs, save_model)
 
 sweep_configuration = {
-    "name": "first_rnn",
+    "name": "narrow_lstm",
     "method": "bayes",
     "metric": {'goal': 'maximize', 'name': 'val_acc'},
     "early_terminate": {
@@ -41,21 +41,21 @@ sweep_configuration = {
      },
     "parameters": {
         'loss': {'values': ['cross_entropy']},
-        'optimizer': {'values' :['sgd', 'adam']},
-        'lr': {'min': 0.001, 'max': 0.9},
-        'beta1': {'min': 0.5, 'max': 0.9},
-        'beta2': {'min': 0.5, 'max': 0.9},
-        'momentum': {'min': 0.0, 'max': 0.9},
-        "input_embedding_size": {'min': 128, 'max': 512},
-        "num_layer": {'min': 1, 'max': 5},
-        "hidden_size": {'min': 128, 'max': 512},
-        "cell_type": {'values': ['gru', 'lstm', 'rnn']},
-        "dropout": {'min': 0.0, 'max': 0.4},
-        "teacher_forcing_ratio": {'min': 0.0, 'max': 0.5},
-        "epochs": {'min': 8, 'max': 12}
+        'optimizer': {'values' :['adam']},
+        'lr': {'min': 0.0002, 'max': 0.0004},
+        'beta1': {'min': 0.7, 'max': 0.73},
+        'beta2': {'min': 0.65, 'max': 0.68},
+        'momentum': {'min': 0.5, 'max': 0.6},
+        "input_embedding_size": {'values': [256]},
+        "num_layer": {'min': 5, 'max': 6},
+        "hidden_size": {'values': [512]},
+        "cell_type": {'values': ['lstm']},
+        "dropout": {'min': 0.3, 'max': 0.4},
+        "teacher_forcing_ratio": {'min': 0.2, 'max': 0.3},
+        "epochs": {'min': 25, 'max': 30}
     }
 }
 
 
 sweep_id = wandb.sweep(sweep=sweep_configuration, project="cs6910-assignment-3", entity="me19b110")
-wandb.agent(sweep_id=sweep_id, function=run_sweeps, count=1)
+wandb.agent(sweep_id=sweep_id, function=run_sweeps, count=200)

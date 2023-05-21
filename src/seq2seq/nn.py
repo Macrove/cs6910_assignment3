@@ -5,7 +5,7 @@ from torch import nn
 import random
 import torch
 from seq2seq.encoder import EncoderRNN
-from seq2seq.decoder import DecoderRNN, AttnDecoderRNN
+from seq2seq.decoder import DecoderRNN
 
 class Transliterator(nn.Module):
     def __init__(self, loss, optimizer, use_wandb,
@@ -20,13 +20,10 @@ class Transliterator(nn.Module):
         self.target_field = target_field
         self.valid_dataset = valid_dataset
         self.valid_iterator = valid_iterator
-        self.train_iterator = train_iterator
-        self.encoder = EncoderRNN(len(source_field.vocab), input_embedding_size, hidden_size, device, num_layer, dropout, cell_type).to(device)
         self.use_attention = use_attention
-        if self.use_attention:
-            self.decoder = AttnDecoderRNN(hidden_size, device, optimizer, num_layer, dropout, cell_type, max_length)
-        else:
-            self.decoder = DecoderRNN(len(target_field.vocab), input_embedding_size, hidden_size, device, num_layer, dropout, cell_type).to(device)
+        self.train_iterator = train_iterator
+        self.encoder = EncoderRNN(len(source_field.vocab), input_embedding_size, hidden_size, device, num_layer, dropout, cell_type, self.use_attention).to(device)
+        self.decoder = DecoderRNN(len(target_field.vocab), input_embedding_size, hidden_size, device, num_layer, dropout, cell_type, use_attention).to(device)
 
 
         self.max_length = max_length
@@ -47,48 +44,73 @@ class Transliterator(nn.Module):
 
 
     def forward(self, input_tensor, target_tensor):
-        if self.cell_type == 'lstm':
-            target_length = target_tensor.shape[0]
-            target_n_chars = len(self.target_field.vocab)
+        target_length = target_tensor.shape[0]
+        target_n_chars = len(self.target_field.vocab)
+        if self.use_attention == 0:
+            if self.cell_type == 'lstm':
 
-            encoder_hidden, encoder_cell = self.encoder(input_tensor)
+                encoder_hidden, encoder_cell = self.encoder(input_tensor)
 
-            decoder_input = target_tensor[0] # sos token
-            decoder_outputs = torch.zeros(target_length, self.batch_size, target_n_chars, device=self.device)
+                decoder_input = target_tensor[0] # sos token
+                decoder_outputs = torch.zeros(target_length, self.batch_size, target_n_chars, device=self.device)
 
-            decoder_hidden = encoder_hidden
-            decoder_cell = encoder_cell
+                decoder_hidden = encoder_hidden
+                decoder_cell = encoder_cell
+
+                for t in range(1, target_length):
+                    decoder_output, decoder_hidden, decoder_cell = self.decoder(decoder_input, decoder_hidden, decoder_cell)
+                    decoder_outputs[t] = decoder_output
+
+                    best_guess = decoder_output.argmax(1)
+
+                    decoder_input = target_tensor[t] if random.random() < self.teacher_forcing_ratio else best_guess
+
+                return decoder_outputs
+
+            elif self.cell_type == 'gru' or self.cell_type == "rnn":
+                encoder_hidden = self.encoder(input_tensor)
+
+                decoder_input = target_tensor[0] # sos token
+                decoder_outputs = torch.zeros(target_length, self.batch_size, target_n_chars, device=self.device)
+
+                decoder_hidden = encoder_hidden
+
+                for t in range(1, target_length):
+                    decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
+                    decoder_outputs[t] = decoder_output
+
+                    best_guess = decoder_output.argmax(1)
+
+                    decoder_input = target_tensor[t] if random.random() < self.teacher_forcing_ratio else best_guess
+
+                return decoder_outputs
+        else: #using attention
+            outputs = torch.zeros(target_length, self.batch_size, target_n_chars).to(self.device)
+            encoder_states, hidden, cell = self.encoder(input_tensor)
+
+            # First input will be <SOS> token
+            x = target_tensor[0]
 
             for t in range(1, target_length):
-                decoder_output, decoder_hidden, decoder_cell = self.decoder(decoder_input, decoder_hidden, decoder_cell)
-                decoder_outputs[t] = decoder_output
+                # At every time step use encoder_states and update hidden, cell
+                output, hidden, cell = self.decoder(x, encoder_states, hidden, cell)
 
-                best_guess = decoder_output.argmax(1)
+                # Store prediction for current time step
+                outputs[t] = output
 
-                decoder_input = target_tensor[t] if random.random() < self.teacher_forcing_ratio else best_guess
+                # Get the best word the Decoder predicted (index in the vocabulary)
+                best_guess = output.argmax(1)
 
-            return decoder_outputs
+                # With probability of teacher_force_ratio we take the actual next word
+                # otherwise we take the word that the Decoder predicted it to be.
+                # Teacher Forcing is used so that the model gets used to seeing
+                # similar inputs at training and testing time, if teacher forcing is 1
+                # then inputs at test time might be completely different than what the
+                # network is used to. This was a long comment.
+                x = target_tensor[t] if random.random() < self.teacher_forcing_ratio else best_guess
 
-        elif self.cell_type == 'gru' or "rnn":
-            target_length = target_tensor.shape[0]
-            target_n_chars = len(self.target_field.vocab)
+            return outputs
 
-            encoder_hidden = self.encoder(input_tensor)
-
-            decoder_input = target_tensor[0] # sos token
-            decoder_outputs = torch.zeros(target_length, self.batch_size, target_n_chars, device=self.device)
-
-            decoder_hidden = encoder_hidden
-
-            for t in range(1, target_length):
-                decoder_output, decoder_hidden = self.decoder(decoder_input, decoder_hidden)
-                decoder_outputs[t] = decoder_output
-
-                best_guess = decoder_output.argmax(1)
-
-                decoder_input = target_tensor[t] if random.random() < self.teacher_forcing_ratio else best_guess
-
-            return decoder_outputs
 
     def fit(self):
         num_epochs = self.epochs
@@ -100,7 +122,10 @@ class Transliterator(nn.Module):
                 inp_data, inp_len = batch.src
                 target, trg_len = batch.trg
                 # Forward prop
-                output = self(inp_data, target)
+                if self.use_attention == False:
+                    output = self(inp_data, target)
+                else: #using attention
+                    output, attention = self(inp_data, target)
 
                 output = output[1:].reshape(-1, output.shape[2])
                 target = target[1:].reshape(-1)
@@ -133,7 +158,10 @@ class Transliterator(nn.Module):
                 inp_data, inp_len = batch.src
                 target, trg_len = batch.trg
                 # Forward prop
-                output = self(inp_data, target)
+                if self.use_attention == False:
+                    output = self(inp_data, target)
+                else: #using attention
+                    output, attention = self(inp_data, target)
 
                 output = output[1:].reshape(-1, output.shape[2])
                 target = target[1:].reshape(-1)
@@ -143,17 +171,24 @@ class Transliterator(nn.Module):
             if self.use_wandb:
                 wandb.log({f"{dataset_type}_loss": round(loss, 4)})
 
-    def validate(self):
+    def validate(self, dataset, return_preds = False):
         correct = 0
+        pred_target_pairs = []
         print("Evaluating word level accuracy")
-        for pair in tqdm(self.valid_dataset, total=len(self.valid_dataset)):
+        for pair in tqdm(dataset, total=len(dataset)):
             pred_word = self.predict(pair.src)
             target_word = "".join(pair.trg)
             if pred_word == target_word:
                 correct+=1
+            if return_preds:
+                if pred_word == target_word:
+                    pred_target_pairs.append([pred_word, target_word, 1])
+                else:
+                    pred_target_pairs.append([pred_word, target_word, 0])
+                    
 
         accuracy = correct/len(self.valid_dataset)
-        return accuracy
+        return accuracy, pred_target_pairs
         
 
     def predict(self, tokens):
@@ -180,7 +215,7 @@ class Transliterator(nn.Module):
                 outputs.append(best_guess)
                 if output.argmax(1).item() == self.target_field.vocab.stoi["<eos>"]:
                     break
-        elif self.cell_type == "gru" or "rnn":
+        elif self.cell_type == "gru" or self.cell_type == "rnn":
             with torch.no_grad():
                 hidden = self.encoder(input_tensor)
 
